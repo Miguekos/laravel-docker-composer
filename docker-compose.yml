@@ -40,6 +40,8 @@ services:
       MYSQL_ROOT_PASSWORD: common404
       SERVICE_TAGS: dev
       SERVICE_NAME: mysql
+    volumes:
+      - /usr/local/volumes/mysql_${name_app}:/var/lib/mysql
     
 
   php:
