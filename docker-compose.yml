@@ -1,0 +1,109 @@
+version: '3'
+
+# networks:
+#   default:
+#     external:
+#       name: nginx-proxy_default
+
+services:
+  site:
+    build:
+      context: .
+      dockerfile: nginx.dockerfile
+    container_name: nginx_${name_app}
+    # environment:
+    #   LETSENCRYPT_EMAIL: miguekos1233@gmail.com
+    #   LETSENCRYPT_HOST: homey.apps.com.pe,www.homey.apps.com.pe
+    #   VIRTUAL_HOST: homey.apps.com.pe,www.homey.apps.com.pe
+    ports:
+      - ${nginx_port}:80
+    volumes:
+      - ./src:/var/www/html:delegated
+    depends_on:
+      - php
+      # - redis
+      - mysql
+      - mailhog
+    
+
+  mysql:
+    image: mysql:5.7.29
+    container_name: mysql_${name_app}
+    restart: unless-stopped
+    tty: true
+    ports:
+      - ${mysql_port}:3306
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: root
+      MYSQL_PASSWORD: common404
+      MYSQL_ROOT_PASSWORD: common404
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    
+
+  php:
+    build:
+      context: .
+      dockerfile: php.dockerfile
+    container_name: php_${name_app}
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./php/php.ini:/usr/local/etc/php/conf.d/php.ini:rw
+    
+
+  # redis:
+  #   image: redis:alpine
+  #   container_name: redis_${name_app}
+  #   restart: unless-stopped
+  #   ports:
+  #     - 6379:6379
+  
+
+  composer:
+    build:
+      context: .
+      dockerfile: composer.dockerfile
+    container_name: composer_${name_app}
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    depends_on:
+      - php
+    user: laravel
+    entrypoint: ['composer', '--ignore-platform-reqs']
+    
+
+  # npm:
+  #   image: node:13.7
+  #   container_name: npm_${name_app}
+  #   volumes:
+  #     - ./src:/var/www/html
+  #   ports:
+  #     - 3000:3000
+  #     - 3001:3001
+  #   working_dir: /var/www/html
+  #   entrypoint: ['npm']
+  
+
+  artisan:
+    build:
+      context: .
+      dockerfile: php.dockerfile
+    container_name: artisan_${name_app}
+    volumes:
+      - ./src:/var/www/html:delegated
+    depends_on:
+      - mysql
+    working_dir: /var/www/html
+    user: laravel
+    entrypoint: ['php', '/var/www/html/artisan']
+    
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog_${name_app}
+    ports:
+      - ${mailhog_port_1}:1025
+      - ${mailhog_port_2}:8025
+    
